@@ -1,0 +1,328 @@
+#lang plai
+
+(require racket/path)
+
+;;creates global list variable called tokens
+;;reads in every line from tokens file and saves
+;;each token/lexeme pair as a separate list item
+;(define tokens (file->lines (string->path "D:\\Dropbox\\auburn_faculty\\RacketPrograms\\tokens")));;school computer
+(define tokens (file->lines (string->path "tokens")));;home computer
+
+;;helper function
+;;retrieves the first token from the list of tokens
+(define current_token
+  (lambda ()
+    (regexp-split #px" " (car tokens))
+    );end lambda
+  );end current_token
+
+;;helper function
+;;removes one token from the tokens list
+;;so that current_token function always extracts
+;;the next available token
+(define next_token
+  (lambda ()
+		(set! tokens (cdr tokens))
+    (cond
+      ((null? tokens)
+       (display "No more tokens to parse!")
+       (newline)
+       (display "Exiting prematurely, no eof found")
+       (newline)
+       (exit));end null tokens
+      (else
+       (cond
+         ((equal? (car (current_token)) "whitespace")
+          (next_token);call yourself again
+          )
+         );end cond
+       );end else
+      );end cond
+    );end lambda
+  );end next_token
+    
+
+;;checks ID rule
+;;if current_token is an id token
+;;displays message found + lexeme that was encountered
+;;in addition, also displays when entering or leaving
+;;function (parse trace)
+;;if current_token is not id, displays an error message
+(define id
+  (lambda ()
+    (display "<id>")
+	(newline)
+    (cond
+      ((equal? (car (current_token)) "id")
+       (display (second (current_token)))
+       (newline)
+       (next_token)
+	   0
+       );end first equality check in condition
+      (else
+       (display "ERROR: not an id")
+		(display (car (current_token)))
+       (newline)
+	   1
+       );end else statement
+      );end condition block
+    );end lambda
+  );end id
+
+;;checks int rule
+;;if current_token is an int token
+;;displays message found + lexeme that was encountered
+;;in addition, also displays when entering or leaving
+;;function (parse trace)
+;;if current_token is not int, displays an error message
+(define int
+  (lambda ()
+    (display "<int>")
+	(newline)
+    (cond
+      ((equal? (car (current_token)) "int")
+       (display (second (current_token)))
+       (newline)
+       (next_token)
+	   0
+       );end first equality check in condition
+      (else
+       (display "ERROR: not an int")
+		(display (car (current_token)))
+       (newline)
+	   1
+       );end else statement
+      );end condition block
+    );end lambda
+  );end int
+
+;;checks factor rule
+;;prints terminals along the way, calling the appropriate function
+;;for non-terminals
+;;displays message found + lexeme that was encountered
+;;in addition, also displays when entering or leaving
+;;function (parse trace)
+;(define factor
+;  (lambda ()
+;    
+;      );end lambda
+;    );end define factor
+
+;;checks exp rule
+;;prints terminals along the way, calling the appropriate function
+;;for non-terminals
+;;displays message found + lexeme that was encountered
+;;in addition, also displays when entering or leaving
+;;function (parse trace)
+(define exp
+  (lambda ()
+		(display "<exp>")
+		(newline)
+		(+ (term) (etail))
+    );end lambda
+  );end define exp
+
+(define term
+  (lambda ()
+		(display "<term>")
+		(newline)
+		(+ (factor) (ttail))
+	)
+ )
+
+(define factor
+  (lambda ()
+		(display "<factor>")
+		(newline)
+		(cond
+			((equal? (car (current_token)) "(")
+				(+ (oparen) (exp) (cparen))
+			 )
+			((equal? (car (current_token)) "id")
+				(id)
+			 )
+			((equal? (car (current_token)) "int")
+				(int)
+			 )
+			(else
+				(display "ERROR: not an factor")
+				(display (car (current_token)))
+				(newline)
+				1
+			 )
+		  )
+	)
+ )
+
+(define etail
+  (lambda ()
+		(display "<etail>")
+		(newline)
+		(cond
+			((equal? (car (current_token)) "+")
+			 	(next_token)
+				(+ (term) (etail))
+			 )
+			((equal? (car (current_token)) "-")
+			 	(next_token)
+				(+ (term) (etail))
+			 )
+			(else ; NOT SURE ABOUT EPSILON
+			  	0
+			  )
+		  )
+	)
+ )
+
+(define ttail
+  (lambda ()
+		(display "<ttail>")
+		(newline)
+		(cond
+			((equal? (car (current_token)) "/")
+			 	(next_token)
+				(+ (term) (etail))
+			 )
+			((equal? (car (current_token)) "*")
+			 	(next_token)
+				(+ (term) (etail))
+			 )
+			(else ; NOT SURE ABOUT EPSILON
+			  	0
+			  )
+		  )
+	)
+ )
+
+(define pgm
+	(lambda ()
+	  	(display "<pgm>")
+		(newline)
+		(stmt)
+	 )
+)
+
+(define stmt
+  	(lambda ()
+		(cond
+		  	((equal? (car (current_token)) "print")
+				(display "<stmt>")
+				(newline)
+			 	(+ (print) (stmt))
+			  )
+			((equal? (car (current_token)) "id")
+				(display "<stmt>")
+				(newline)
+			  	(+ (assign) (stmt))
+			  )
+			((equal? (car (current_token)) "eof")
+			 	0
+			 )
+			(else
+				(display "<stmt>")
+				(newline)
+			  	(display "ERROR: not a statement: ")
+				(display (car (current_token)))
+				(newline)
+				1
+			  )
+		  )
+	  )
+  )
+
+(define print
+  	(lambda ()
+	  	(display "<print>")
+		(newline)
+		(cond
+		  	((equal? (car (current_token)) "print")
+			 	(next_token)
+				(exp)
+			 )
+			(else
+			  	(display "ERROR: not a print statement")
+				(display (car (current_token)))
+				(newline)
+				1
+			 )
+		  )
+	  )
+  )
+
+(define assign
+  	(lambda ()
+	  	(display "<assign>")
+		(newline)
+		(cond
+		  	((equal? (car (current_token)) "id")
+			 	(+ (id) (equal) (exp))
+			 )
+			(else
+			  	(display "ERROR: not an assign statement")
+				(display (car (current_token)))
+				(newline)
+				1
+			  )
+		  )
+	 )
+  )
+
+(define equal
+  	(lambda ()
+	  	(display "<=>")
+		(newline)
+	  (cond
+			((equal? (car (current_token)) "=")
+			 	(next_token)
+			 	0
+			 )
+			(else
+			  	(display "ERROR: not an equals sign")
+				(display (car (current_token)))
+				(newline)
+				1
+			  )
+		)
+  )
+)
+
+(define oparen
+  	(lambda ()
+	  	(display "<(>")
+		(newline)
+	  (cond
+			((equal? (car (current_token)) "(")
+			 	(next_token)
+			 	0
+			 )
+			(else
+			  	(display "ERROR: not an open parenthesis")
+				(display (car (current_token)))
+				(newline)
+				1
+			  )
+		)
+  )
+)
+
+(define cparen
+  	(lambda ()
+	  	(display "<)>")
+		(newline)
+	  (cond
+			((equal? (car (current_token)) ")")
+			 	(next_token)
+			 	0
+			 )
+			(else
+			  	(display "ERROR: not a closed parenthesis")
+				(display (car (current_token)))
+				(newline)
+				1
+			  )
+		)
+  )
+)
+
+(display (pgm))
+(newline)
